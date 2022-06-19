@@ -3,19 +3,15 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const { google } = require("googleapis");
 const cloudinary = require("../../../utils/cloudinary");
 
-const { google } = require("googleapis");
-
-const CLIENT_ID =
-	"922981826695-rviuikdrd4rk1kbsake7iusml8qb2ibc.apps.googleusercontent.com";
-const CLIENT_SECRET = "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";
-const CLIENT_TOKEN =
-	"4/0AX4XfWg_vE6SU-W9lMKzVWPR14HQquZF4A3LWO0L0wlifqCQpzHUCNn5L9GTFZK5c1OCsg";
-const CLIENT_REDIRECT = "https://developers.google.com/oauthplayground";
-
-const oAuth = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, CLIENT_REDIRECT);
-oAuth.setCredentials({ refresh_token: CLIENT_TOKEN });
+//database
+const {
+	resetMail,
+	verifiedMail,
+	reSendMail,
+} = require("../../../utils/sendEmail");
 
 const getSchoolTeacher = async (req, res) => {
 	try {
@@ -111,38 +107,7 @@ const createSchool = async (req, res) => {
 			verifiedToken: token,
 		});
 
-		const access = await oAuth.getAccessToken();
-		const transport = nodemailer.createTransport({
-			service: "gmail",
-			auth: {
-				type: "OAuth2",
-				clientId: CLIENT_ID,
-				clientSecret: CLIENT_SECRET,
-				refresh_token: CLIENT_TOKEN,
-				accessToken: access.token,
-			},
-		});
-
-		const mailOptions = {
-			from: "Skuul ✉️ <skuulkude@gmail.com>",
-			to: email,
-			subject: "Account Verification",
-			html: `
-            <h3>
-                This mail, is for account verification... Please use the <a
-                href="http://localhost:3000/api/admin/${users._id}/${token}"
-                >Link to Finish</a> up your account creation 
-            </h3>
-            `,
-		};
-
-		transport.sendMail(mailOptions, (err, info) => {
-			if (err) {
-				console.log(err.message);
-			} else {
-				console.log(`message sent to your mail ${info.response}`);
-			}
-		});
+		verifiedMail(email, users._id);
 
 		res.status(200).json({ message: "Please check your mail to continue" });
 	} catch (error) {
@@ -209,40 +174,7 @@ const signinSchool = async (req, res) => {
 
 					const code = `schoolCode: ${token} ${getToken}`;
 
-					const access = await oAuth.getAccessToken();
-					const transport = nodemailer.createTransport({
-						service: "gmail",
-						auth: {
-							type: "OAuth2",
-							clientId: CLIENT_ID,
-							clientSecret: CLIENT_SECRET,
-							refresh_token: CLIENT_TOKEN,
-							accessToken: access.token,
-						},
-					});
-
-					const mailOptions = {
-						from: "Skuul ✉️ <skuulkude@gmail.com>",
-						to: email,
-						subject: "Account re-Verification",
-						html: `
-            <h3>
-                This mail, is for account verification... Please use the <a
-                href="http://localhost:3000/api/admin/${user._id}/${
-							code.split(" ")[-1]
-						}"
-                >Link to Finish</a> up your account creation 
-            </h3>
-            `,
-					};
-
-					transport.sendMail(mailOptions, (err, info) => {
-						if (err) {
-							console.log(err.message);
-						} else {
-							console.log(`message sent to your mail ${info.response}`);
-						}
-					});
+					reSendMail(email, user._id, code);
 
 					res.status(200).json({
 						message:
@@ -279,38 +211,7 @@ const newPasswordRequest = async (req, res) => {
 					{ new: true }
 				);
 
-				const access = await oAuth.getAccessToken();
-				const transport = nodemailer.createTransport({
-					service: "gmail",
-					auth: {
-						type: "OAuth2",
-						clientId: CLIENT_ID,
-						clientSecret: CLIENT_SECRET,
-						refresh_token: CLIENT_TOKEN,
-						accessToken: access.token,
-					},
-				});
-
-				const mailOptions = {
-					from: "Skuul ✉️ <skuulkude@gmail.com>",
-					to: email,
-					subject: "Reset Password Request",
-					html: `
-            <h3>
-                This mail, is sent because you requested for a password reset... Please use the <a
-                href="http://localhost:3000/api/admin/reset/${user._id}/${token}"
-                >Link to Finish</a> up your password reset request!  
-            </h3>
-            `,
-				};
-
-				transport.sendMail(mailOptions, (err, info) => {
-					if (err) {
-						console.log(err.message);
-					} else {
-						console.log(`message sent to your mail ${info.response}`);
-					}
-				});
+				resetMail(email, user._id);
 
 				res.status(200).json({
 					message:

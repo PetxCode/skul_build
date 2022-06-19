@@ -4,7 +4,7 @@ const url =
 
 const urls = "mongodb://localhost/schoolManagementDB";
 
-mongoose.connect(url).then(() => {
+mongoose.connect(urls).then(() => {
 	console.log("database connected...");
 });
 
